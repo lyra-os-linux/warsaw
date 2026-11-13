@@ -1,0 +1,7 @@
+*.rpm
+warsaw_setup64.rpm
+payload/
+__pycache__/
+*.pyc
+*.log
+.DS_Store

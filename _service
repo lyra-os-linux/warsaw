@@ -1,0 +1,12 @@
+<services>
+  <service name="download_url">
+    <param name="protocol">https</param>
+    <param name="host">cloud.gastecnologia.com.br</param>
+    <param name="path">/bb/downloads/ws/warsaw_setup64.rpm</param>
+  </service>
+  <service name="verify_file">
+    <param name="file">_service:download_url:warsaw_setup64.rpm</param>
+    <param name="verifier">sha256</param>
+    <param name="checksum">a91d5935a4a0db8f309d300b91bcc12fd716b4498a4bfe673fa67aa9ed082d25</param>
+  </service>
+</services>

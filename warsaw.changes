@@ -1,0 +1,13 @@
+-------------------------------------------------------------------
+Fri Nov 13 15:04:10 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Package the official Warsaw 2.21.4-3 x86_64 RPM for the signed Lyra
+  repositories without recompiling or modifying its payload. Use
+  Release 3.lyra1 so it supersedes the unsigned vendor RPM of the same
+  version if one is already installed.
+- Replace the obsolete procps-ng requirement with procps.
+- Keep warsaw.service disabled on install, ship a preset that prevents
+  systemd from enabling it, and stop/disable it on erase.
+- Verify every packaged file against the pinned upstream SHA-256 list.
+
+-------------------------------------------------------------------

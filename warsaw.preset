@@ -1,0 +1,4 @@
+# warsaw.service runs as root and is only needed while the user is using a
+# bank. The Vega "Bancos" card enables it on demand; keep systemd presets from
+# turning it on at install or first boot.
+disable warsaw.service
