@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/topaz-logo.svg" alt="Logo da Topaz, fabricante do Warsaw" width="280">
+</p>
+
 # Empacotamento do Warsaw
 
 Empacotamento RPM do módulo de segurança oficial Warsaw x86_64, da Topaz OFD
@@ -7,6 +11,21 @@ assinados do OBS do Lyra OS.
 
 Este repositório só contém metadados de empacotamento; o Warsaw não é código
 do Lyra. O conteúdo é redistribuído byte a byte.
+
+## Para que serve
+
+O Warsaw é o "módulo de segurança" que alguns bancos brasileiros, como o Banco
+do Brasil e a Caixa, exigem para liberar o internet banking no navegador. Sem
+ele, o site do banco não deixa entrar na conta ou bloqueia operações como
+pagamentos e transferências.
+
+Ele roda em segundo plano como o serviço `warsaw.service` (o processo `core`).
+O site do banco conversa com esse serviço local para identificar o computador
+e proteger a sessão contra fraudes. Por isso o módulo precisa estar instalado e
+em execução enquanto o usuário usa o banco.
+
+No Lyra OS, o serviço não inicia sozinho: o cartão "Bancos" do Vega ativa o
+Warsaw só quando o usuário pede e o desativa depois.
 
 | Arquivo | Função |
 | --- | --- |
@@ -146,3 +165,7 @@ Quando a Topaz publicar um RPM novo:
 O Warsaw é desenvolvido pela Topaz OFD (antiga GAS Tecnologia / Diebold
 Nixdorf). Veja <https://www.topaz.com.br/ofd/>. Os arquivos de licença do
 fabricante acompanham o RPM oficial.
+
+O logo no topo deste README é marca da Topaz, copiado de
+<https://www.topazevolution.com/>, e aparece só para identificar o fabricante.
+O Warsaw não tem logo próprio publicado.
