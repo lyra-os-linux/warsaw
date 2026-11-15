@@ -68,6 +68,12 @@ são idênticos, byte a byte, aos do `warsaw_setup64.rpm` 2.21.4-3:
 - os scripts de instalação usam os macros de serviço do openSUSE
   (`%service_add_pre`, `%service_add_post`, `%service_del_preun` e
   `%service_del_postun`), no lugar das chamadas ao `systemctl` do fabricante.
+- a regra `50-warsaw.rules` do polkit deixa o usuário da sessão local ativa
+  iniciar e parar só o `warsaw.service`, sem senha. Os webapps de bancos do
+  Vega ligam o serviço ao abrir e o desligam ao fechar (vega#210). Habilitar,
+  desabilitar, mascarar ou reiniciar o serviço, e qualquer outra unit,
+  continuam pedindo a senha de administrador; sessões SSH ou inativas não são
+  cobertas.
 
 O RPM oficial não tem assinatura. A cadeia de confiança é o SHA-256 fixado no
 `_service` mais a assinatura do projeto OBS.

@@ -11,10 +11,12 @@ URL:            https://www.topaz.com.br/ofd/
 Source0:        warsaw_setup64.rpm
 Source1:        warsaw-files.sha256
 Source2:        warsaw.preset
+Source3:        warsaw.rules
 BuildRequires:  cpio
 BuildRequires:  rpm
 BuildRequires:  systemd-rpm-macros
 Requires:       python3
+Requires:       polkit
 Requires:       procps
 Requires:       zenity
 ExclusiveArch:  x86_64
@@ -53,6 +55,9 @@ mkdir payload
 %install
 cp -a payload/. %{buildroot}/
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system-preset/90-warsaw.preset
+# Lets the active local session start and stop only warsaw.service, for the
+# Vega bank web apps (vega#210).
+install -D -m 0644 %{SOURCE3} %{buildroot}%{_datadir}/polkit-1/rules.d/50-warsaw.rules
 
 %check
 # Every packaged file must match the official RPM byte for byte. This fails if
@@ -126,6 +131,7 @@ fi
 /usr/bin/warsaw
 %{_prefix}/lib/systemd/system/warsaw.service
 %{_prefix}/lib/systemd/system-preset/90-warsaw.preset
+%{_datadir}/polkit-1/rules.d/50-warsaw.rules
 %dir /usr/local/bin/warsaw
 /usr/local/bin/warsaw/*
 # Nothing in openSUSE owns /usr/local/etc; the OBS filelist check fails if

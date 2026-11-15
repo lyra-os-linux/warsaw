@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sun Nov 15 21:30:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Add a polkit rule that lets the active local session start and
+  stop only warsaw.service, without a password. The Vega bank web
+  apps start the service when they open and stop it when they close
+  (vega#210). Enable, disable, mask and other units still need the
+  administrator password.
+
+-------------------------------------------------------------------
 Sun Nov 15 18:45:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Own /usr/local/etc again: no openSUSE package owns it and the OBS
