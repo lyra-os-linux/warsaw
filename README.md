@@ -65,6 +65,9 @@ são idênticos, byte a byte, aos do `warsaw_setup64.rpm` 2.21.4-3:
   que nada sobreviva ao pacote;
 - o `90-warsaw.preset` desativa a unit para o `systemctl preset` e para o
   primeiro boot.
+- os scripts de instalação usam os macros de serviço do openSUSE
+  (`%service_add_pre`, `%service_add_post`, `%service_del_preun` e
+  `%service_del_postun`), no lugar das chamadas ao `systemctl` do fabricante.
 
 O RPM oficial não tem assinatura. A cadeia de confiança é o SHA-256 fixado no
 `_service` mais a assinatura do projeto OBS.
@@ -76,6 +79,31 @@ byte e têm o mesmo SHA-256 fixado. A verificação diária de `upstream-version
 do `lyra-ecosystem` baixa os dois e avisa quando qualquer um mudar, incluindo o
 `Last-Modified`. Essa verificação entra com o PR
 [lyra-ecosystem#86](https://github.com/lyra-os-linux/lyra-ecosystem/pull/86).
+
+## Riscos aceitos
+
+O rpmlint do openSUSE aponta problemas que vêm dos arquivos do fabricante.
+Corrigi-los exigiria modificar ou mover os binários, o que a licença não
+permite. O mantenedor decidiu, em 15/11/2026, filtrá-los no
+`warsaw-rpmlintrc` e documentá-los aqui:
+
+- **pilha executável** (`executable-stack`) em
+  `/usr/local/lib/warsaw/wsbrmu.so`: a biblioteca pede uma pilha executável,
+  o que facilita a exploração de falhas de memória num processo que roda
+  como root;
+- **troca de usuário sem `setgroups`**
+  (`missing-call-to-setgroups-before-setuid`) no `core`: ao trocar de
+  usuário, o processo pode manter os grupos suplementares do root;
+- **arquivos em `/usr/local`** (`filelist-forbidden-fhs23`): o openSUSE
+  reserva `/usr/local` ao administrador. Além disso, `/usr/local` fica fora
+  dos snapshots do Snapper, e um rollback deixa o RPM e os arquivos
+  incoerentes ([#12](https://github.com/lyra-os-linux/warsaw/issues/12));
+- **init script** (`deprecated-init-script` e
+  `systemd-shadowed-initscript`): o `/etc/init.d/warsaw` faz parte do
+  conteúdo oficial, mas o systemd usa o `warsaw.service` e ignora o script.
+
+Por isso o `warsaw.service` fica desligado por padrão e só roda enquanto o
+usuário usa o banco.
 
 ## Instalador e atualizador do fabricante
 

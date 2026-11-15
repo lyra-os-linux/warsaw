@@ -61,6 +61,30 @@ class WarsawPackagingTests(unittest.TestCase):
         self.assertIn("__os_install_post %{nil}", spec)
         self.assertNotIn("%systemd_post", spec)
 
+    def test_uses_opensuse_service_macros(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        self.assertIn("systemd-rpm-macros", spec)
+        self.assertIn("%service_add_pre warsaw.service", scriptlet(spec, "%pre"))
+        self.assertIn("%service_add_post warsaw.service", scriptlet(spec, "%post"))
+        self.assertIn("%service_del_preun warsaw.service", scriptlet(spec, "%preun"))
+        self.assertIn("%service_del_postun warsaw.service", scriptlet(spec, "%postun"))
+
+    def test_does_not_own_standard_directories(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        self.assertNotRegex(spec, r"(?m)^%dir /usr/local/etc$")
+
+    def test_rpmlint_filters_are_specific_and_documented(self):
+        rc = (ROOT / "warsaw-rpmlintrc").read_text(encoding="utf-8")
+        filters = [line for line in rc.splitlines() if line.startswith("addFilter(")]
+        self.assertEqual(len(filters), 5)
+        for line in filters:
+            self.assertNotIn('"E: ', line)
+            self.assertNotIn('"W: ', line)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for check in ("executable-stack", "missing-call-to-setgroups-before-setuid",
+                      "filelist-forbidden-fhs23", "deprecated-init-script"):
+            self.assertIn(check, readme)
+
     def test_license_files_are_one_per_line(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
         for line in spec.splitlines():
@@ -80,7 +104,7 @@ class WarsawPackagingTests(unittest.TestCase):
     def test_service_is_not_enabled_on_install(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
         self.assertNotRegex(spec, r"systemctl\s+enable")
-        self.assertIn("disable --now warsaw.service", spec)
+        self.assertIn("%service_del_preun warsaw.service", spec)
         preset = (ROOT / "warsaw.preset").read_text(encoding="utf-8")
         self.assertIn("disable warsaw.service", preset)
 
