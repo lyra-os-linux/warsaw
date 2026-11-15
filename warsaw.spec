@@ -1,6 +1,10 @@
 Name:           warsaw
 Version:        2.21.4
-Release:        3.lyra1
+Release:        0
+# OBS rewrites Release (lp161.N.M), which sorts below the vendor's "3".
+# Epoch 1 makes this package supersede the unsigned vendor RPM of the same
+# version; the vendor RPM has no Epoch.
+Epoch:          1
 Summary:        Warsaw security module for Brazilian internet banking
 License:        LGPL-3.0-or-later AND LicenseRef-Warsaw-Redistributable
 URL:            https://www.topaz.com.br/ofd/
@@ -62,8 +66,8 @@ rm -f /run/warsaw-rpm-from-vendor /run/warsaw-rpm-restart
 if [ $1 -ge 2 ]; then
     # The vendor RPM enables warsaw.service in its %%post and its scriptlets
     # never disable it on upgrade. Remember that we are replacing it so %%post
-    # can turn the boot-time activation off.
-    if rpm -q --qf '%%{RELEASE}\n' warsaw 2>/dev/null | grep -qv 'lyra'; then
+    # can turn the boot-time activation off. The vendor RPM has no Epoch.
+    if rpm -q --qf '%%{EPOCH}\n' warsaw 2>/dev/null | grep -qxF '(none)'; then
         touch /run/warsaw-rpm-from-vendor || :
     fi
     # Like the vendor %%pre, stop Warsaw before its files are replaced, so no
@@ -111,7 +115,8 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 
 %files
 %dir /usr/share/licenses/warsaw
-%license %{_datadir}/licenses/warsaw/COPYING %{_datadir}/licenses/warsaw/COPYING.LESSER
+%license %{_datadir}/licenses/warsaw/COPYING
+%license %{_datadir}/licenses/warsaw/COPYING.LESSER
 /etc/init.d/warsaw
 /usr/bin/warsaw
 %{_prefix}/lib/systemd/system/warsaw.service

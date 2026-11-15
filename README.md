@@ -43,9 +43,10 @@ são idênticos, byte a byte, aos do `warsaw_setup64.rpm` 2.21.4-3:
 
 - `Requires: procps` substitui o `procps-ng` original, que não existe no
   openSUSE (lá o pacote se chama `procps`);
-- o RPM é assinado pela chave do projeto OBS do Lyra, e o release é
-  `3.lyra1`, para substituir o `2.21.4-3` do fabricante, que não é assinado,
-  caso ele já esteja instalado;
+- o RPM é assinado pela chave do projeto OBS do Lyra e tem `Epoch: 1`, para
+  substituir o `2.21.4-3` do fabricante, que não é assinado, caso ele já
+  esteja instalado. O OBS reescreve o release (`lp161.N.M`), e sem o epoch o
+  `3` do fabricante seria considerado mais novo;
 - o `%post` não ativa nem inicia o `warsaw.service`. O cartão "Bancos" do
   Vega ativa e desativa o serviço só quando o usuário pede, e o `%preun` para
   e desativa o serviço na remoção;
