@@ -128,6 +128,9 @@ fi
 %{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 %dir /usr/local/bin/warsaw
 /usr/local/bin/warsaw/*
+# Nothing in openSUSE owns /usr/local/etc; the OBS filelist check fails if
+# this package does not.
+%dir /usr/local/etc
 %dir /usr/local/etc/warsaw
 # Same file flags as the vendor RPM: only gas.dbd is configuration. The other
 # files are vendor data that must follow each upgrade.

@@ -6,6 +6,9 @@
 # The vendor installs its private payload under /usr/local and the binaries
 # load it from there by absolute path.
 addFilter("filelist-forbidden-fhs23 /usr/local")
+# No openSUSE package owns /usr/local/etc, and the OBS filelist check
+# rejects a package that creates a directory nobody owns.
+addFilter("standard-dir-owned-by-package /usr/local/etc")
 
 # /etc/init.d/warsaw is part of the official payload. systemd uses
 # warsaw.service and ignores the init script, which is shadowed by the unit.
