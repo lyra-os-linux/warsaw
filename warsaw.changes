@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Sun Nov 15 20:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Use the openSUSE %service_add_pre, %service_add_post,
+  %service_del_preun and %service_del_postun macros.
+- Stop owning /usr/local/etc, which belongs to the standard hierarchy.
+- Rewrite warsaw-rpmlintrc for rpmlint 2: drop the filters that matched
+  nothing and filter, with a documented reason, only the errors that
+  come from the unmodified vendor payload (/usr/local layout, init
+  script, executable stack in wsbrmu.so, setuid without setgroups in
+  core).
+
+-------------------------------------------------------------------
 Sun Nov 15 18:40:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Add Epoch: 1 so the package supersedes the vendor 2.21.4-3: OBS

@@ -1,22 +1,17 @@
-# The upstream RPM installs its private payload under /usr/local; changing the
-# paths would modify the vendor layout. The binaries are redistributed
-# unmodified and may keep their upstream sections, modes and private naming.
-addFilter("E: file-in-usr-local /usr/local/")
-addFilter("E: dir-or-file-in-usr-local /usr/local/")
-addFilter("E: dir-in-usr-local /usr/local/")
-addFilter("E: script-without-shebang /usr/local/etc/warsaw/")
-addFilter("E: executable-marked-as-config-file /usr/local/etc/warsaw/")
-addFilter("W: unstripped-binary-or-object /usr/local/")
-addFilter("E: missing-hash-section /usr/local/")
-addFilter("E: library-without-ldconfig-postin /usr/local/lib/warsaw/")
-addFilter("E: library-without-ldconfig-postun /usr/local/lib/warsaw/")
-addFilter("W: library-without-ldconfig-postin /usr/local/lib/warsaw/")
-addFilter("W: library-without-ldconfig-postun /usr/local/lib/warsaw/")
-addFilter("E: shared-lib-without-version /usr/local/lib/warsaw/")
-addFilter("E: shlib-without-versioned-soname /usr/local/lib/warsaw/")
-# The license mixes LGPL-3.0-or-later with the vendor's redistribution terms.
-addFilter("W: invalid-license")
-addFilter("E: invalid-license")
-# The changelog lives in warsaw.changes, as in the other Lyra packages.
-addFilter("E: no-changelogname-tag")
-addFilter("W: no-changelogname-tag")
+# The payload is the official Warsaw RPM, redistributed byte for byte (see
+# warsaw-files.sha256). The errors below come from the vendor's files and
+# layout; fixing them would mean modifying or relocating the binaries, which
+# the license does not allow. The risks are documented in README.md.
+
+# The vendor installs its private payload under /usr/local and the binaries
+# load it from there by absolute path.
+addFilter("filelist-forbidden-fhs23 /usr/local")
+
+# /etc/init.d/warsaw is part of the official payload. systemd uses
+# warsaw.service and ignores the init script, which is shadowed by the unit.
+addFilter("deprecated-init-script warsaw")
+addFilter("systemd-shadowed-initscript warsaw")
+
+# Vendor binaries, built by Topaz. They cannot be rebuilt or patched.
+addFilter("executable-stack /usr/local/lib/warsaw/wsbrmu.so")
+addFilter("missing-call-to-setgroups-before-setuid /usr/local/bin/warsaw/core")

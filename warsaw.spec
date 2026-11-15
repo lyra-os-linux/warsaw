@@ -13,10 +13,12 @@ Source1:        warsaw-files.sha256
 Source2:        warsaw.preset
 BuildRequires:  cpio
 BuildRequires:  rpm
+BuildRequires:  systemd-rpm-macros
 Requires:       python3
 Requires:       procps
 Requires:       zenity
 ExclusiveArch:  x86_64
+%{?systemd_ordering}
 
 %global debug_package %{nil}
 # Redistribute the official payload byte for byte. Every post-install brp
@@ -61,6 +63,7 @@ sha256sum --check --strict %{SOURCE1}
 grep -qxF 'disable warsaw.service' %{buildroot}%{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 
 %pre
+%service_add_pre warsaw.service
 # Drop markers left by an interrupted transaction.
 rm -f /run/warsaw-rpm-from-vendor /run/warsaw-rpm-restart
 if [ $1 -ge 2 ]; then
@@ -81,10 +84,11 @@ if [ $1 -ge 2 ]; then
 fi
 
 %post
-# Do not enable, start or preset warsaw.service here: it runs as root and the
-# user may install the package long before using a bank. The Vega "Bancos"
-# card turns it on and off on demand.
-systemctl daemon-reload >/dev/null 2>&1 || :
+# Do not enable or start warsaw.service here: it runs as root and the user may
+# install the package long before using a bank. The Vega "Bancos" card turns
+# it on and off on demand. On a fresh install %%service_add_post applies
+# 90-warsaw.preset, which keeps the unit disabled.
+%service_add_post warsaw.service
 if [ -e /run/warsaw-rpm-from-vendor ]; then
     rm -f /run/warsaw-rpm-from-vendor
     systemctl disable warsaw.service >/dev/null 2>&1 || :
@@ -97,8 +101,9 @@ if [ -e /run/warsaw-rpm-restart ]; then
 fi
 
 %preun
+# Stops and disables warsaw.service on erase.
+%service_del_preun warsaw.service
 if [ $1 -eq 0 ]; then
-    systemctl --no-reload disable --now warsaw.service >/dev/null 2>&1 || :
     # Stopping the unit may leave wsatspi/sysdss helpers running; do not leave
     # processes behind after RPM removes their files.
     pkill -9 -f '^/usr/local/bin/warsaw/(core|sysdss|wsatspi|wsupdsl)( |$)' >/dev/null 2>&1 || :
@@ -111,7 +116,7 @@ if [ $1 -eq 0 ]; then
     # to Warsaw's private directories, so an erase leaves nothing behind.
     rm -rf /usr/local/bin/warsaw /usr/local/etc/warsaw /usr/local/lib/warsaw >/dev/null 2>&1 || :
 fi
-systemctl daemon-reload >/dev/null 2>&1 || :
+%service_del_postun warsaw.service
 
 %files
 %dir /usr/share/licenses/warsaw
@@ -123,7 +128,6 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 %{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 %dir /usr/local/bin/warsaw
 /usr/local/bin/warsaw/*
-%dir /usr/local/etc
 %dir /usr/local/etc/warsaw
 # Same file flags as the vendor RPM: only gas.dbd is configuration. The other
 # files are vendor data that must follow each upgrade.
