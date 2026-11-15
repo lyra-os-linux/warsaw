@@ -53,12 +53,19 @@ class WarsawPackagingTests(unittest.TestCase):
     def test_spec_repackages_the_payload_without_modifying_it(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
         self.assertRegex(spec, r"(?m)^Version:\s+2\.21\.4$")
-        self.assertRegex(spec, r"(?m)^Release:\s+3\.lyra1$")
+        self.assertRegex(spec, r"(?m)^Release:\s+0$")
+        self.assertRegex(spec, r"(?m)^Epoch:\s+1$")
         self.assertIn("LicenseRef-Warsaw-Redistributable", spec)
         self.assertIn("rpm2cpio", spec)
         self.assertIn("sha256sum --check --strict", spec)
         self.assertIn("__os_install_post %{nil}", spec)
         self.assertNotIn("%systemd_post", spec)
+
+    def test_license_files_are_one_per_line(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        for line in spec.splitlines():
+            if line.startswith("%license"):
+                self.assertEqual(len(line.split()), 2, line)
 
     def test_procps_replaces_procps_ng(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
@@ -134,7 +141,9 @@ class WarsawPackagingTests(unittest.TestCase):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
         pre = scriptlet(spec, "%pre")
         post = scriptlet(spec, "%post")
-        self.assertIn("rpm -q --qf '%%{RELEASE}\\n' warsaw", pre)
+        self.assertIn("rpm -q --qf '%%{EPOCH}\\n' warsaw", pre)
+        self.assertIn("grep -qxF '(none)'", pre)
+        self.assertNotIn("lyra", pre)
         self.assertIn("touch /run/warsaw-rpm-from-vendor", pre)
         self.assertIn("systemctl disable warsaw.service", post)
         self.assertNotIn("--now", post)

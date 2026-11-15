@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sun Nov 15 18:40:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Add Epoch: 1 so the package supersedes the vendor 2.21.4-3: OBS
+  rewrites Release to lp161.N.M, which sorts below the vendor "3".
+  Use Release: 0, as OBS replaces it anyway.
+- Detect the vendor RPM in %pre by its missing Epoch instead of the
+  release string.
+- List each %license file on its own line; rpm rejected two absolute
+  paths on one line.
+
+-------------------------------------------------------------------
 Sun Nov 15 16:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Mark only gas.dbd as %config(noreplace), as the vendor RPM does;
