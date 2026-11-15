@@ -69,14 +69,19 @@ class WarsawPackagingTests(unittest.TestCase):
         self.assertIn("%service_del_preun warsaw.service", scriptlet(spec, "%preun"))
         self.assertIn("%service_del_postun warsaw.service", scriptlet(spec, "%postun"))
 
-    def test_does_not_own_standard_directories(self):
+    def test_owns_usr_local_etc_with_a_filter(self):
+        # No openSUSE package owns /usr/local/etc and the OBS filelist check
+        # rejects unowned directories, so the package owns it and filters
+        # rpmlint's standard-dir-owned-by-package.
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
-        self.assertNotRegex(spec, r"(?m)^%dir /usr/local/etc$")
+        self.assertRegex(spec, r"(?m)^%dir /usr/local/etc$")
+        rc = (ROOT / "warsaw-rpmlintrc").read_text(encoding="utf-8")
+        self.assertIn('addFilter("standard-dir-owned-by-package /usr/local/etc")', rc)
 
     def test_rpmlint_filters_are_specific_and_documented(self):
         rc = (ROOT / "warsaw-rpmlintrc").read_text(encoding="utf-8")
         filters = [line for line in rc.splitlines() if line.startswith("addFilter(")]
-        self.assertEqual(len(filters), 5)
+        self.assertEqual(len(filters), 6)
         for line in filters:
             self.assertNotIn('"E: ', line)
             self.assertNotIn('"W: ', line)

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Sun Nov 15 18:45:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Own /usr/local/etc again: no openSUSE package owns it and the OBS
+  filelist check rejects unowned directories. Filter rpmlint's
+  standard-dir-owned-by-package for that directory.
+
+-------------------------------------------------------------------
 Sun Nov 15 20:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Use the openSUSE %service_add_pre, %service_add_post,
