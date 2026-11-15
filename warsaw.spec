@@ -56,11 +56,41 @@ sha256sum --check --strict %{SOURCE1}
 # The unit must stay off until the Vega card enables it.
 grep -qxF 'disable warsaw.service' %{buildroot}%{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 
+%pre
+# Drop markers left by an interrupted transaction.
+rm -f /run/warsaw-rpm-from-vendor /run/warsaw-rpm-restart
+if [ $1 -ge 2 ]; then
+    # The vendor RPM enables warsaw.service in its %%post and its scriptlets
+    # never disable it on upgrade. Remember that we are replacing it so %%post
+    # can turn the boot-time activation off.
+    if rpm -q --qf '%%{RELEASE}\n' warsaw 2>/dev/null | grep -qv 'lyra'; then
+        touch /run/warsaw-rpm-from-vendor || :
+    fi
+    # Like the vendor %%pre, stop Warsaw before its files are replaced, so no
+    # binary or library is swapped under a running process. %%posttrans starts
+    # it again only if it was running.
+    if systemctl is-active --quiet warsaw.service 2>/dev/null; then
+        touch /run/warsaw-rpm-restart || :
+    fi
+    systemctl stop warsaw.service >/dev/null 2>&1 || :
+    pkill -9 -f '^/usr/local/bin/warsaw/(core|sysdss|wsatspi|wsupdsl)( |$)' >/dev/null 2>&1 || :
+fi
+
 %post
 # Do not enable, start or preset warsaw.service here: it runs as root and the
 # user may install the package long before using a bank. The Vega "Bancos"
 # card turns it on and off on demand.
 systemctl daemon-reload >/dev/null 2>&1 || :
+if [ -e /run/warsaw-rpm-from-vendor ]; then
+    rm -f /run/warsaw-rpm-from-vendor
+    systemctl disable warsaw.service >/dev/null 2>&1 || :
+fi
+
+%posttrans
+if [ -e /run/warsaw-rpm-restart ]; then
+    rm -f /run/warsaw-rpm-restart
+    systemctl start warsaw.service >/dev/null 2>&1 || :
+fi
 
 %preun
 if [ $1 -eq 0 ]; then
@@ -90,7 +120,12 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 /usr/local/bin/warsaw/*
 %dir /usr/local/etc
 %dir /usr/local/etc/warsaw
-%config(noreplace) /usr/local/etc/warsaw/*
+# Same file flags as the vendor RPM: only gas.dbd is configuration. The other
+# files are vendor data that must follow each upgrade.
+%config(noreplace) /usr/local/etc/warsaw/gas.dbd
+/usr/local/etc/warsaw/config.cfgc
+/usr/local/etc/warsaw/features.datc
+/usr/local/etc/warsaw/uninstall.dat
 %dir /usr/local/lib/warsaw
 /usr/local/lib/warsaw/*
 %dir /usr/local/share/fonts

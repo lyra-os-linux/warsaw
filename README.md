@@ -49,6 +49,15 @@ são idênticos, byte a byte, aos do `warsaw_setup64.rpm` 2.21.4-3:
 - o `%post` não ativa nem inicia o `warsaw.service`. O cartão "Bancos" do
   Vega ativa e desativa o serviço só quando o usuário pede, e o `%preun` para
   e desativa o serviço na remoção;
+- ao substituir o RPM do fabricante, que habilita o serviço no boot, o
+  `%post` desabilita o `warsaw.service` (sem pará-lo), para que ele volte a
+  subir só quando o usuário pedir;
+- na atualização, o `%pre` para o serviço e mata os processos auxiliares
+  antes de trocar os arquivos, como faz o `%pre` oficial, e o `%posttrans`
+  religa o serviço só se ele estava ativo;
+- só o `gas.dbd` é marcado como `%config(noreplace)`, como no RPM oficial;
+  os demais arquivos de `/usr/local/etc/warsaw` são dados do fabricante e
+  acompanham cada atualização;
 - na remoção, o `%preun` também mata os processos auxiliares que sobrarem
   (`core`, `sysdss`, `wsatspi` e `wsupdsl`) e o `%postun` apaga os diretórios
   privados do Warsaw em `/usr/local`, como faz o `postuninstall` oficial, para
