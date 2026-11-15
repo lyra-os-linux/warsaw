@@ -127,6 +127,17 @@ oficial, mas o systemd usa `/usr/lib/systemd/system/warsaw.service`
 `PIDFile=/var/run/core.pid`, `Restart=always`). O cartão do Vega deve usar o
 `systemctl` diretamente, nunca o `warsaw start`.
 
+Por causa do init script, `systemctl enable` e `systemctl disable` do
+`warsaw.service` falham no Leap 16.1: o `systemctl` tenta sincronizar com o
+`systemd-sysv-install`, que não existe. Assim, o serviço não pode ser
+habilitado no boot, nem pelo `%post` do RPM do fabricante. É o comportamento
+desejado: o Warsaw roda só enquanto o usuário usa o banco. O cartão "Bancos"
+do Vega deve usar só `Services.SetServiceRunning` (`systemctl start` e
+`stop`), nunca `Services.SetServiceEnabled`. O init script continua no
+pacote por decisão do mantenedor (15/11/2026), porque faz parte do conteúdo
+oficial. A evidência do teste está na
+[#4](https://github.com/lyra-os-linux/warsaw/issues/4#issuecomment-6899362677).
+
 ## Licença
 
 O RPM oficial declara `License: Redistributable, no modification permitted`,
