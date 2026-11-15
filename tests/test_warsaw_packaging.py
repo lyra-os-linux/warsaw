@@ -8,6 +8,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def scriptlet(spec: str, name: str) -> str:
+    """Body of a spec section, from its header line to the next section."""
+    body: list[str] = []
+    inside = False
+    for line in spec.splitlines():
+        if line.startswith("%") and line.split()[0] in SECTIONS:
+            inside = line.split()[0] == name
+            continue
+        if inside:
+            body.append(line)
+    return "\n".join(body)
+
+
+SECTIONS = {
+    "%prep", "%build", "%install", "%check", "%pre", "%post", "%posttrans",
+    "%preun", "%postun", "%files", "%changelog", "%description",
+}
+
+
 def params(service: ET.Element) -> dict[str, str]:
     return {item.get("name", ""): (item.text or "").strip() for item in service}
 
@@ -104,6 +123,33 @@ class WarsawPackagingTests(unittest.TestCase):
                 any(fnmatch.fnmatchcase(packaged, pattern) for pattern in patterns),
                 packaged,
             )
+
+    def test_only_gas_dbd_is_configuration(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        configs = [line for line in spec.splitlines() if line.startswith("%config")]
+        self.assertEqual(configs, ["%config(noreplace) /usr/local/etc/warsaw/gas.dbd"])
+        self.assertNotIn("/usr/local/etc/warsaw/*", spec)
+
+    def test_upgrade_from_vendor_rpm_disables_the_service(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        pre = scriptlet(spec, "%pre")
+        post = scriptlet(spec, "%post")
+        self.assertIn("rpm -q --qf '%%{RELEASE}\\n' warsaw", pre)
+        self.assertIn("touch /run/warsaw-rpm-from-vendor", pre)
+        self.assertIn("systemctl disable warsaw.service", post)
+        self.assertNotIn("--now", post)
+
+    def test_upgrade_stops_before_and_restarts_only_if_running(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        pre = scriptlet(spec, "%pre")
+        posttrans = scriptlet(spec, "%posttrans")
+        self.assertIn("if [ $1 -ge 2 ]; then", pre)
+        self.assertIn("systemctl is-active --quiet warsaw.service", pre)
+        self.assertIn("touch /run/warsaw-rpm-restart", pre)
+        self.assertIn("systemctl stop warsaw.service", pre)
+        self.assertIn("pkill -9 -f '^/usr/local/bin/warsaw/", pre)
+        self.assertIn("if [ -e /run/warsaw-rpm-restart ]; then", posttrans)
+        self.assertIn("systemctl start warsaw.service", posttrans)
 
 
 if __name__ == "__main__":

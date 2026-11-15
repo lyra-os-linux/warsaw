@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Sun Nov 15 16:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Mark only gas.dbd as %config(noreplace), as the vendor RPM does;
+  config.cfgc, features.datc and uninstall.dat now follow each upgrade
+  (gh#lyra-os-linux/warsaw#7).
+- Disable warsaw.service at boot when replacing the vendor RPM, which
+  enables it in its %post (gh#lyra-os-linux/warsaw#8).
+- Stop warsaw.service and its helpers in %pre before replacing files on
+  upgrade, and start it again in %posttrans only if it was running
+  (gh#lyra-os-linux/warsaw#9).
+
+-------------------------------------------------------------------
 Fri Nov 13 15:04:10 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Package the official Warsaw 2.21.4-3 x86_64 RPM for the signed Lyra
