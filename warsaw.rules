@@ -1,0 +1,17 @@
+// Warsaw: the Vega bank web apps start warsaw.service when they open and stop
+// it when they close (vega#210), so the vendor service, which runs as root,
+// only runs while the user is at the bank website.
+//
+// Allows the user of the active local session to start and stop only
+// warsaw.service, without a password. Enable, disable, mask, restart and any
+// other unit keep the default systemd policy (administrator password). SSH
+// and other non-local or inactive sessions are not covered.
+polkit.addRule(function(action, subject) {
+    if (action.id !== "org.freedesktop.systemd1.manage-units")
+        return;
+    if (action.lookup("unit") !== "warsaw.service")
+        return;
+    var verb = action.lookup("verb");
+    if ((verb === "start" || verb === "stop") && subject.local && subject.active)
+        return polkit.Result.YES;
+});
