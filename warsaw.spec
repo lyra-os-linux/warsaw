@@ -15,6 +15,7 @@ Source3:        warsaw.rules
 BuildRequires:  cpio
 BuildRequires:  rpm
 BuildRequires:  systemd-rpm-macros
+Requires:       ca-certificates
 Requires:       python3
 Requires:       polkit
 Requires:       procps
@@ -58,6 +59,12 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system-preset/9
 # Lets the active local session start and stop only warsaw.service, for the
 # Vega bank web apps (vega#210).
 install -D -m 0644 %{SOURCE3} %{buildroot}%{_datadir}/polkit-1/rules.d/50-warsaw.rules
+# The core validates the manufacturer's download server against the Red Hat
+# CA bundle path only. Without it, Install() of the bank client files aborts
+# and banks keep asking for the security module (warsaw#18). Point it at the
+# openSUSE bundle.
+install -d -m 0755 %{buildroot}%{_sysconfdir}/pki/tls/certs
+ln -s ../../../ssl/ca-bundle.pem %{buildroot}%{_sysconfdir}/pki/tls/certs/ca-bundle.crt
 
 %check
 # Every packaged file must match the official RPM byte for byte. This fails if
@@ -66,10 +73,12 @@ cd %{buildroot}
 sha256sum --check --strict %{SOURCE1}
 # The manifest must also list every packaged file: a file added by a new
 # vendor RPM would otherwise ship without a hash check (warsaw#3). Only the
-# two files Lyra adds (preset and polkit rule) are outside the manifest.
+# files Lyra adds (preset, polkit rule and CA bundle link) are outside the
+# manifest.
 find . ! -type d \
     ! -path ./usr/lib/systemd/system-preset/90-warsaw.preset \
     ! -path ./usr/share/polkit-1/rules.d/50-warsaw.rules \
+    ! -path ./etc/pki/tls/certs/ca-bundle.crt \
     -printf '%%P\n' | LC_ALL=C sort > %{_builddir}/payload.list
 awk '{print $2}' %{SOURCE1} | LC_ALL=C sort | diff -u - %{_builddir}/payload.list
 # The unit must stay off until the Vega card enables it.
@@ -152,6 +161,9 @@ fi
 %{_prefix}/lib/systemd/system/warsaw.service
 %{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 %{_datadir}/polkit-1/rules.d/50-warsaw.rules
+%dir %{_sysconfdir}/pki/tls
+%dir %{_sysconfdir}/pki/tls/certs
+%{_sysconfdir}/pki/tls/certs/ca-bundle.crt
 %dir /usr/local/bin/warsaw
 /usr/local/bin/warsaw/*
 # Nothing in openSUSE owns /usr/local/etc; the OBS filelist check fails if
