@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Nov 17 14:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Ship /etc/pki/tls/certs/ca-bundle.crt as a link to the openSUSE CA
+  bundle (/etc/ssl/ca-bundle.pem) and require ca-certificates. The core
+  only looks for the Red Hat path to validate the manufacturer's
+  download server; without it, installing the bank client files
+  aborted and banks kept asking for the security module (warsaw#18).
+
+-------------------------------------------------------------------
 Tue Nov 17 13:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - %check also compares the packaged file list with

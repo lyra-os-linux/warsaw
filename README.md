@@ -187,6 +187,14 @@ esteja no `warsaw-files.sha256` faz o build falhar (#3). Só o preset e a regra
 do polkit, que o Lyra acrescenta, ficam fora do manifesto. O `__os_install_post` fica desligado,
 para que nenhum script `brp-*` mexa no conteúdo.
 
+## Bundle de certificados
+
+O `core` confere o servidor de download do fabricante só pelo bundle de CAs do
+Red Hat, `/etc/pki/tls/certs/ca-bundle.crt`, que não existe no openSUSE. Sem
+ele, a instalação dos arquivos de cliente de cada banco aborta e o site do
+banco continua pedindo o módulo de segurança (#18). O pacote instala esse
+caminho como link para `/etc/ssl/ca-bundle.pem` (pacote `ca-certificates`).
+
 ## Problemas conhecidos
 
 - [#1](https://github.com/lyra-os-linux/warsaw/issues/1): uma atualização com

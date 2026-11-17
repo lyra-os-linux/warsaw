@@ -170,6 +170,16 @@ class WarsawPackagingTests(unittest.TestCase):
         self.assertIn("! -path ./usr/share/polkit-1/rules.d/50-warsaw.rules", check)
         self.assertIn("awk '{print $2}' %{SOURCE1} | LC_ALL=C sort | diff -u -", check)
 
+    def test_core_finds_the_ca_bundle_at_the_red_hat_path(self):
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        self.assertIn("Requires:       ca-certificates", spec)
+        self.assertIn(
+            "ln -s ../../../ssl/ca-bundle.pem %{buildroot}%{_sysconfdir}/pki/tls/certs/ca-bundle.crt",
+            spec,
+        )
+        self.assertIn("%{_sysconfdir}/pki/tls/certs/ca-bundle.crt", scriptlet(spec, "%files"))
+        self.assertIn("! -path ./etc/pki/tls/certs/ca-bundle.crt", scriptlet(spec, "%check"))
+
     def test_only_gas_dbd_is_configuration(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
         configs = [line for line in spec.splitlines() if line.startswith("%config")]
