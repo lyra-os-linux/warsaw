@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Tue Nov 17 13:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- %check also compares the packaged file list with
+  warsaw-files.sha256: a new vendor file outside the manifest now
+  fails the build instead of shipping without a hash check (warsaw#3).
+- Erase and upgrade stop the helpers by executable
+  (/proc/<pid>/exe under /usr/local/bin/warsaw/) instead of a pkill -f
+  command-line pattern, so a helper started with another argv[0] no
+  longer survives (warsaw#2).
+
+-------------------------------------------------------------------
 Sun Nov 15 21:30:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Add a polkit rule that lets the active local session start and
