@@ -64,6 +64,14 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_datadir}/polkit-1/rules.d/50-warsaw
 # anything in the build chain modified the binaries or libraries.
 cd %{buildroot}
 sha256sum --check --strict %{SOURCE1}
+# The manifest must also list every packaged file: a file added by a new
+# vendor RPM would otherwise ship without a hash check (warsaw#3). Only the
+# two files Lyra adds (preset and polkit rule) are outside the manifest.
+find . ! -type d \
+    ! -path ./usr/lib/systemd/system-preset/90-warsaw.preset \
+    ! -path ./usr/share/polkit-1/rules.d/50-warsaw.rules \
+    -printf '%%P\n' | LC_ALL=C sort > %{_builddir}/payload.list
+awk '{print $2}' %{SOURCE1} | LC_ALL=C sort | diff -u - %{_builddir}/payload.list
 # The unit must stay off until the Vega card enables it.
 grep -qxF 'disable warsaw.service' %{buildroot}%{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 
@@ -85,7 +93,13 @@ if [ $1 -ge 2 ]; then
         touch /run/warsaw-rpm-restart || :
     fi
     systemctl stop warsaw.service >/dev/null 2>&1 || :
-    pkill -9 -f '^/usr/local/bin/warsaw/(core|sysdss|wsatspi|wsupdsl)( |$)' >/dev/null 2>&1 || :
+    # Match the executable, not the command line: a helper started with
+    # another argv[0] would escape a pkill -f pattern (warsaw#2).
+    for exe in /proc/[0-9]*/exe; do
+        case $(readlink "$exe" 2>/dev/null) in
+            /usr/local/bin/warsaw/*) pid=${exe#/proc/}; kill -9 "${pid%%/exe}" >/dev/null 2>&1 || : ;;
+        esac
+    done
 fi
 
 %post
@@ -111,7 +125,13 @@ fi
 if [ $1 -eq 0 ]; then
     # Stopping the unit may leave wsatspi/sysdss helpers running; do not leave
     # processes behind after RPM removes their files.
-    pkill -9 -f '^/usr/local/bin/warsaw/(core|sysdss|wsatspi|wsupdsl)( |$)' >/dev/null 2>&1 || :
+    # Match the executable, not the command line: a helper started with
+    # another argv[0] would escape a pkill -f pattern (warsaw#2).
+    for exe in /proc/[0-9]*/exe; do
+        case $(readlink "$exe" 2>/dev/null) in
+            /usr/local/bin/warsaw/*) pid=${exe#/proc/}; kill -9 "${pid%%/exe}" >/dev/null 2>&1 || : ;;
+        esac
+    done
 fi
 
 %postun

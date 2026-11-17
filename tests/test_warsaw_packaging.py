@@ -115,7 +115,10 @@ class WarsawPackagingTests(unittest.TestCase):
 
     def test_erase_stops_helpers_and_cleans_private_directories(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
-        self.assertIn("pkill -9 -f '^/usr/local/bin/warsaw/", spec)
+        preun = scriptlet(spec, "%preun")
+        self.assertIn("for exe in /proc/[0-9]*/exe; do", preun)
+        self.assertIn("/usr/local/bin/warsaw/*) pid=${exe#/proc/}; kill -9", preun)
+        self.assertNotIn("pkill -9", spec)
         self.assertIn(
             "rm -rf /usr/local/bin/warsaw /usr/local/etc/warsaw /usr/local/lib/warsaw",
             spec,
@@ -160,6 +163,13 @@ class WarsawPackagingTests(unittest.TestCase):
                 packaged,
             )
 
+    def test_check_rejects_files_outside_the_manifest(self):
+        check = scriptlet((ROOT / "warsaw.spec").read_text(encoding="utf-8"), "%check")
+        self.assertIn("find . ! -type d", check)
+        self.assertIn("! -path ./usr/lib/systemd/system-preset/90-warsaw.preset", check)
+        self.assertIn("! -path ./usr/share/polkit-1/rules.d/50-warsaw.rules", check)
+        self.assertIn("awk '{print $2}' %{SOURCE1} | LC_ALL=C sort | diff -u -", check)
+
     def test_only_gas_dbd_is_configuration(self):
         spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
         configs = [line for line in spec.splitlines() if line.startswith("%config")]
@@ -185,7 +195,8 @@ class WarsawPackagingTests(unittest.TestCase):
         self.assertIn("systemctl is-active --quiet warsaw.service", pre)
         self.assertIn("touch /run/warsaw-rpm-restart", pre)
         self.assertIn("systemctl stop warsaw.service", pre)
-        self.assertIn("pkill -9 -f '^/usr/local/bin/warsaw/", pre)
+        self.assertIn("for exe in /proc/[0-9]*/exe; do", pre)
+        self.assertLess(pre.index("systemctl stop warsaw.service"), pre.index("for exe in /proc/"))
         self.assertIn("if [ -e /run/warsaw-rpm-restart ]; then", posttrans)
         self.assertIn("systemctl start warsaw.service", posttrans)
 

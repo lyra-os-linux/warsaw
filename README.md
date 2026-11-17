@@ -181,18 +181,22 @@ Os testes exigem:
 
 O build no OBS roda `sha256sum --check --strict` em cada arquivo empacotado
 depois do `%install`; um arquivo com símbolos removidos ou modificado de
-qualquer outra forma faz o build falhar. O `__os_install_post` fica desligado,
+qualquer outra forma faz o build falhar. O `%check` também compara a lista de
+arquivos do pacote com a do manifesto: um arquivo novo do fabricante que não
+esteja no `warsaw-files.sha256` faz o build falhar (#3). Só o preset e a regra
+do polkit, que o Lyra acrescenta, ficam fora do manifesto. O `__os_install_post` fica desligado,
 para que nenhum script `brp-*` mexa no conteúdo.
 
 ## Problemas conhecidos
 
 - [#1](https://github.com/lyra-os-linux/warsaw/issues/1): uma atualização com
-  o `warsaw.service` ativo mantém o `core` antigo rodando.
-- [#2](https://github.com/lyra-os-linux/warsaw/issues/2): falta confirmar que o
-  `pkill` da remoção encontra todos os processos auxiliares.
-- [#3](https://github.com/lyra-os-linux/warsaw/issues/3): um arquivo novo do
-  fabricante que fique fora do `warsaw-files.sha256` entra no pacote sem
-  conferência de hash.
+  o `warsaw.service` ativo mantinha o `core` antigo rodando. Desde o #10, o
+  `%pre` para o serviço antes de trocar os arquivos e o `%posttrans` o religa
+  se ele estava ativo; falta a validação na VM.
+- [#2](https://github.com/lyra-os-linux/warsaw/issues/2): a remoção e a
+  atualização encerram os auxiliares pelo executável (`/proc/<pid>/exe` em
+  `/usr/local/bin/warsaw/`), não pela linha de comando; falta conferir na VM,
+  com uma página de banco aberta, que nenhum auxiliar sobra.
 - [#4](https://github.com/lyra-os-linux/warsaw/issues/4): qualificação numa VM
   Leap 16.1 limpa, que ainda precisa provar que:
   - instalar, atualizar e remover não deixa arquivo órfão em `/usr/local`;
