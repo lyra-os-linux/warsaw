@@ -161,6 +161,9 @@ fi
 %{_prefix}/lib/systemd/system/warsaw.service
 %{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 %{_datadir}/polkit-1/rules.d/50-warsaw.rules
+# /etc/pki belongs to p11-kit, which is not in the build root; directories
+# may have more than one owner, and the OBS filelist check needs one here.
+%dir %{_sysconfdir}/pki
 %dir %{_sysconfdir}/pki/tls
 %dir %{_sysconfdir}/pki/tls/certs
 %{_sysconfdir}/pki/tls/certs/ca-bundle.crt
