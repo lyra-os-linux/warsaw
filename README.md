@@ -33,6 +33,7 @@ Warsaw só quando o usuário pede e o desativa depois.
 | `warsaw.spec` | Extrai o RPM oficial com `rpm2cpio` e instala os mesmos arquivos nos mesmos caminhos, sem compilar nem modificar nada |
 | `warsaw-files.sha256` | SHA-256 fixado de cada arquivo empacotado, conferido no `%check` |
 | `warsaw.preset` | Mantém o `warsaw.service` desativado, para que os presets do systemd não o ativem na instalação nem no primeiro boot |
+| `warsaw-nssdb.sh`, `warsaw-nssdb.service`, `warsaw-user.preset` | Em cada login, ligam o `~/.pki/nssdb` ao NSS do Chromium nas contas que não o têm (#22) |
 | `warsaw.changes` | Changelog do RPM no formato do openSUSE |
 | `warsaw-rpmlintrc` | Filtros do rpmlint para o layout do fabricante em `/usr/local` |
 
@@ -183,8 +184,9 @@ O build no OBS roda `sha256sum --check --strict` em cada arquivo empacotado
 depois do `%install`; um arquivo com símbolos removidos ou modificado de
 qualquer outra forma faz o build falhar. O `%check` também compara a lista de
 arquivos do pacote com a do manifesto: um arquivo novo do fabricante que não
-esteja no `warsaw-files.sha256` faz o build falhar (#3). Só o preset e a regra
-do polkit, que o Lyra acrescenta, ficam fora do manifesto. O `__os_install_post` fica desligado,
+esteja no `warsaw-files.sha256` faz o build falhar (#3). Só os arquivos que o Lyra
+acrescenta (presets, regra do polkit, link do bundle de CAs e a unidade do
+NSS) ficam fora do manifesto. O `__os_install_post` fica desligado,
 para que nenhum script `brp-*` mexa no conteúdo.
 
 ## Bundle de certificados
@@ -194,6 +196,20 @@ Red Hat, `/etc/pki/tls/certs/ca-bundle.crt`, que não existe no openSUSE. Sem
 ele, a instalação dos arquivos de cliente de cada banco aborta e o site do
 banco continua pedindo o módulo de segurança (#18). O pacote instala esse
 caminho como link para `/etc/ssl/ca-bundle.pem` (pacote `ca-certificates`).
+
+## NSS do Chromium em contas novas
+
+O `core` grava a "Warsaw Personal CA" só em `~/.pki/nssdb` e não cria esse
+diretório. Numa conta sem ele, o Chromium cria e usa
+`${XDG_DATA_HOME:-~/.local/share}/pki/nssdb`, e o banco não reconhece o módulo
+(#22). O serviço de usuário `warsaw-nssdb.service`, ligado para todos pelo
+preset, roda em cada login e:
+
+- não faz nada se `~/.pki/nssdb` já existe (diretório ou link);
+- liga `~/.pki/nssdb` ao NSS XDG, criando-o vazio com `certutil` se preciso.
+
+Com o link, o Chromium usa o caminho antigo, que aponta para o mesmo banco, e o
+`core` grava nele. Os links ficam se o pacote for removido; são inofensivos.
 
 ## Problemas conhecidos
 

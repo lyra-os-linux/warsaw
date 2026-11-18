@@ -1,0 +1,3 @@
+# Runs at each login and only acts in accounts without ~/.pki/nssdb
+# (warsaw#22).
+enable warsaw-nssdb.service
