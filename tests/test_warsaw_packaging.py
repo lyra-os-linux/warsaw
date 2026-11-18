@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import fnmatch
+import os
+import subprocess
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -209,6 +212,95 @@ class WarsawPackagingTests(unittest.TestCase):
         self.assertLess(pre.index("systemctl stop warsaw.service"), pre.index("for exe in /proc/"))
         self.assertIn("if [ -e /run/warsaw-rpm-restart ]; then", posttrans)
         self.assertIn("systemctl start warsaw.service", posttrans)
+
+
+class NssdbLinkTests(unittest.TestCase):
+    """warsaw-nssdb.sh: the CA must reach Chromium in new accounts (warsaw#22)."""
+
+    def run_script(self, home: Path) -> subprocess.CompletedProcess:
+        bindir = home.parent / "bin"
+        bindir.mkdir(exist_ok=True)
+        # Stand-in for certutil -N: records the call and creates the database.
+        stub = bindir / "certutil"
+        stub.write_text(
+            '#!/bin/sh\n'
+            'echo "$@" >> "$CERTUTIL_LOG"\n'
+            'dir=${3#sql:}\n'
+            ': > "$dir/cert9.db"\n',
+            encoding="utf-8",
+        )
+        stub.chmod(0o755)
+        env = {
+            "HOME": str(home),
+            "PATH": f"{bindir}:/usr/bin:/bin",
+            "CERTUTIL_LOG": str(home.parent / "certutil.log"),
+        }
+        return subprocess.run(
+            ["sh", str(ROOT / "warsaw-nssdb.sh")], env=env, capture_output=True, text=True
+        )
+
+    def test_new_account_gets_xdg_database_and_legacy_link(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            home.mkdir()
+            result = self.run_script(home)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            xdg = home / ".local/share/pki/nssdb"
+            legacy = home / ".pki/nssdb"
+            self.assertTrue((xdg / "cert9.db").is_file())
+            self.assertTrue(legacy.is_symlink())
+            self.assertEqual(legacy.resolve(), xdg.resolve())
+            self.assertEqual((home / ".pki").stat().st_mode & 0o777, 0o700)
+            self.assertIn("--empty-password", (Path(tmp) / "certutil.log").read_text())
+
+    def test_existing_xdg_database_is_linked_not_recreated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            xdg = home / ".local/share/pki/nssdb"
+            xdg.mkdir(parents=True)
+            (xdg / "cert9.db").write_text("chromium", encoding="utf-8")
+            self.assertEqual(self.run_script(home).returncode, 0)
+            self.assertEqual((home / ".pki/nssdb").resolve(), xdg.resolve())
+            self.assertEqual((xdg / "cert9.db").read_text(encoding="utf-8"), "chromium")
+            self.assertFalse((Path(tmp) / "certutil.log").exists())
+
+    def test_existing_legacy_database_is_left_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            legacy = home / ".pki/nssdb"
+            legacy.mkdir(parents=True)
+            self.assertEqual(self.run_script(home).returncode, 0)
+            self.assertFalse(legacy.is_symlink())
+            self.assertFalse((home / ".local/share/pki").exists())
+
+    def test_broken_user_link_is_left_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            (home / ".pki").mkdir(parents=True)
+            (home / ".pki/nssdb").symlink_to(home / "missing")
+            self.assertEqual(self.run_script(home).returncode, 0)
+            self.assertEqual(os.readlink(home / ".pki/nssdb"), str(home / "missing"))
+            self.assertFalse((home / ".local/share/pki").exists())
+
+    def test_user_unit_is_packaged_enabled_and_conditional(self):
+        unit = (ROOT / "warsaw-nssdb.service").read_text(encoding="utf-8")
+        self.assertIn("ConditionPathExists=!%h/.pki/nssdb", unit)
+        self.assertIn("Type=oneshot", unit)
+        self.assertIn("ExecStart=/usr/libexec/warsaw/warsaw-nssdb", unit)
+        self.assertIn("WantedBy=default.target", unit)
+        preset = (ROOT / "warsaw-user.preset").read_text(encoding="utf-8")
+        self.assertIn("enable warsaw-nssdb.service", preset)
+        spec = (ROOT / "warsaw.spec").read_text(encoding="utf-8")
+        self.assertIn("Requires:       mozilla-nss-tools", spec)
+        self.assertIn("%systemd_user_post warsaw-nssdb.service", scriptlet(spec, "%post"))
+        self.assertIn("%systemd_user_preun warsaw-nssdb.service", scriptlet(spec, "%preun"))
+        files = scriptlet(spec, "%files")
+        for path in (
+            "%{_libexecdir}/warsaw/warsaw-nssdb",
+            "%{_userunitdir}/warsaw-nssdb.service",
+            "%{_prefix}/lib/systemd/user-preset/90-warsaw.preset",
+        ):
+            self.assertIn(path, files)
 
 
 if __name__ == "__main__":

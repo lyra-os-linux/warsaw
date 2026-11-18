@@ -12,10 +12,14 @@ Source0:        warsaw_setup64.rpm
 Source1:        warsaw-files.sha256
 Source2:        warsaw.preset
 Source3:        warsaw.rules
+Source4:        warsaw-nssdb.sh
+Source5:        warsaw-nssdb.service
+Source6:        warsaw-user.preset
 BuildRequires:  cpio
 BuildRequires:  rpm
 BuildRequires:  systemd-rpm-macros
 Requires:       ca-certificates
+Requires:       mozilla-nss-tools
 Requires:       python3
 Requires:       polkit
 Requires:       procps
@@ -65,6 +69,12 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_datadir}/polkit-1/rules.d/50-warsaw
 # openSUSE bundle.
 install -d -m 0755 %{buildroot}%{_sysconfdir}/pki/tls/certs
 ln -s ../../../ssl/ca-bundle.pem %{buildroot}%{_sysconfdir}/pki/tls/certs/ca-bundle.crt
+# The core writes its CA only to ~/.pki/nssdb, which new accounts lack:
+# Chromium then uses the XDG NSS database and never sees the CA (warsaw#22).
+# A user unit links the legacy path to the XDG database at login.
+install -D -m 0755 %{SOURCE4} %{buildroot}%{_libexecdir}/warsaw/warsaw-nssdb
+install -D -m 0644 %{SOURCE5} %{buildroot}%{_userunitdir}/warsaw-nssdb.service
+install -D -m 0644 %{SOURCE6} %{buildroot}%{_prefix}/lib/systemd/user-preset/90-warsaw.preset
 
 %check
 # Every packaged file must match the official RPM byte for byte. This fails if
@@ -73,10 +83,13 @@ cd %{buildroot}
 sha256sum --check --strict %{SOURCE1}
 # The manifest must also list every packaged file: a file added by a new
 # vendor RPM would otherwise ship without a hash check (warsaw#3). Only the
-# files Lyra adds (preset, polkit rule and CA bundle link) are outside the
-# manifest.
+# files Lyra adds (presets, polkit rule, CA bundle link and the NSS link
+# unit) are outside the manifest.
 find . ! -type d \
     ! -path ./usr/lib/systemd/system-preset/90-warsaw.preset \
+    ! -path ./usr/lib/systemd/user-preset/90-warsaw.preset \
+    ! -path ./usr/lib/systemd/user/warsaw-nssdb.service \
+    ! -path ./usr/libexec/warsaw/warsaw-nssdb \
     ! -path ./usr/share/polkit-1/rules.d/50-warsaw.rules \
     ! -path ./etc/pki/tls/certs/ca-bundle.crt \
     -printf '%%P\n' | LC_ALL=C sort > %{_builddir}/payload.list
@@ -86,6 +99,7 @@ grep -qxF 'disable warsaw.service' %{buildroot}%{_prefix}/lib/systemd/system-pre
 
 %pre
 %service_add_pre warsaw.service
+%systemd_user_pre warsaw-nssdb.service
 # Drop markers left by an interrupted transaction.
 rm -f /run/warsaw-rpm-from-vendor /run/warsaw-rpm-restart
 if [ $1 -ge 2 ]; then
@@ -117,6 +131,9 @@ fi
 # it on and off on demand. On a fresh install %%service_add_post applies
 # 90-warsaw.preset, which keeps the unit disabled.
 %service_add_post warsaw.service
+# Enables warsaw-nssdb.service for every user (90-warsaw.preset); it runs at
+# the next login.
+%systemd_user_post warsaw-nssdb.service
 if [ -e /run/warsaw-rpm-from-vendor ]; then
     rm -f /run/warsaw-rpm-from-vendor
     systemctl disable warsaw.service >/dev/null 2>&1 || :
@@ -131,6 +148,7 @@ fi
 %preun
 # Stops and disables warsaw.service on erase.
 %service_del_preun warsaw.service
+%systemd_user_preun warsaw-nssdb.service
 if [ $1 -eq 0 ]; then
     # Stopping the unit may leave wsatspi/sysdss helpers running; do not leave
     # processes behind after RPM removes their files.
@@ -151,6 +169,7 @@ if [ $1 -eq 0 ]; then
     rm -rf /usr/local/bin/warsaw /usr/local/etc/warsaw /usr/local/lib/warsaw >/dev/null 2>&1 || :
 fi
 %service_del_postun warsaw.service
+%systemd_user_postun warsaw-nssdb.service
 
 %files
 %dir /usr/share/licenses/warsaw
@@ -161,6 +180,10 @@ fi
 %{_prefix}/lib/systemd/system/warsaw.service
 %{_prefix}/lib/systemd/system-preset/90-warsaw.preset
 %{_datadir}/polkit-1/rules.d/50-warsaw.rules
+%dir %{_libexecdir}/warsaw
+%{_libexecdir}/warsaw/warsaw-nssdb
+%{_userunitdir}/warsaw-nssdb.service
+%{_prefix}/lib/systemd/user-preset/90-warsaw.preset
 # /etc/pki belongs to p11-kit, which is not in the build root; directories
 # may have more than one owner, and the OBS filelist check needs one here.
 %dir %{_sysconfdir}/pki

@@ -1,0 +1,11 @@
+[Unit]
+Description=Point ~/.pki/nssdb at the Chromium NSS database for Warsaw
+Documentation=https://github.com/lyra-os-linux/warsaw/issues/22
+ConditionPathExists=!%h/.pki/nssdb
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/warsaw/warsaw-nssdb
+
+[Install]
+WantedBy=default.target

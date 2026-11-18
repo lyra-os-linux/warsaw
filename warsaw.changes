@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Nov 18 12:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
+
+- Add warsaw-nssdb.service, a user unit enabled for every user by
+  preset: at login it links ~/.pki/nssdb to the XDG NSS database
+  (creating it with certutil if needed) in accounts that lack it.
+  The core writes its CA only to ~/.pki/nssdb, so in new accounts
+  Chromium never saw it and banks kept asking for the security module
+  (warsaw#22). Requires mozilla-nss-tools.
+
+-------------------------------------------------------------------
 Tue Nov 17 14:00:00 UTC 2026 - Lyra OS Release <rodrigo@lyraos.com.br>
 
 - Ship /etc/pki/tls/certs/ca-bundle.crt as a link to the openSUSE CA
